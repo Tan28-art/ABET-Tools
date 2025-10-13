@@ -1,2 +1,2 @@
-# AI-SYNT
-Github Repo for the AI SYNT Capstone Project
+# ABET-Tools
+Github Repo for the ABET Tools Capstone Project
