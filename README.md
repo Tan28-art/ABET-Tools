@@ -11,6 +11,8 @@ cd ABET-Tools
 2. create virtual env
 ```
 python -m venv your-venv-name
+
+# Activate venv
 # For mac/linux
 source ./your-venv-name/bin/activate
 
