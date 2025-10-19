@@ -34,3 +34,39 @@ export canvas_access_token="your canvas access token"
 ```
 python test_script.py
 ```
+
+## Grades Fetching
+
+The project includes a comprehensive grades fetching system for Canvas LMS integration.
+
+### Features
+- Fetch all assignments for a course
+- Retrieve student submissions and grades
+- Generate grade statistics and summaries
+- Export data to JSON and CSV formats
+- Comprehensive logging and error handling
+
+### Usage
+
+#### Basic Test
+```bash
+python test_grades_fetch.py
+```
+
+#### Full Grades Fetch
+```bash
+python fetch_grades.py
+```
+
+### Output Files
+- `grades_data_[course_id]_[timestamp].json` - Complete grades data in JSON format
+- `grades_summary_[course_id]_[timestamp].csv` - Grade statistics in CSV format
+- `grades_fetch.log` - Detailed logging information
+
+### Configuration
+Make sure your Canvas access token is set:
+```bash
+export canvas_access_token="your_canvas_access_token"
+```
+
+The script is configured to work with the ASU Canvas instance (`https://canvas.asu.edu`) and uses course ID `240102` by default.
