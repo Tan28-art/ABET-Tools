@@ -240,8 +240,7 @@ class CanvasGradesFetcher:
             Path to saved file
         """
         if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"grades_data_{grades_data['course_id']}_{timestamp}.json"
+            filename = f"grades_data_{grades_data['course_id']}.json"
         
         with open(filename, 'w') as f:
             json.dump(grades_data, f, indent=2)
@@ -261,7 +260,7 @@ class CanvasGradesFetcher:
         """
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"grades_summary_{grades_data['course_id']}_{timestamp}.csv"
+            filename = f"grades_summary_{grades_data['course_id']}.csv"
         
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -307,8 +306,8 @@ class CanvasGradesFetcher:
 
             # Create unique filenames and join them with the output directory
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            json_filename = f"grades_data_{course_id}_{timestamp}.json"
-            csv_filename = f"grades_summary_{course_id}_{timestamp}.csv"
+            json_filename = f"grades_data_{course_id}.json"
+            csv_filename = f"grades_summary_{course_id}.csv"
             
             json_filepath = os.path.join(output_dir, json_filename)
             csv_filepath = os.path.join(output_dir, csv_filename)
