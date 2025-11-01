@@ -1,4 +1,5 @@
 import csv
+import time
 import requests
 import json
 import os
@@ -126,7 +127,7 @@ def get_extreme_submissions(course_id, assignment_id):
         tuple: A tuple containing the highest and lowest graded submission objects, or (None, None).
     """
     endpoint = f"courses/{course_id}/assignments/{assignment_id}/submissions"
-    submissions = get_paginated_list(endpoint) # get all submissions
+    submissions = get_paginated_list(endpoint, params={"include[]": "user"}) # get all submissions with user info
 
     if not submissions:
         return None, None
@@ -206,10 +207,37 @@ def extract_and_save_artifacts(assignment):
     for sub, label in [(highest, "highest"), (lowest, "lowest")]:
         if not (sub and sub.get("attachments")):
             continue
-        for attachment in sub.get("attachments", []):
-            filename = f"{label}_grade_{sub['score']}_{attachment['filename']}"
-            if download_file(attachment["url"], os.path.join(local_path, filename)):
-                saved_files.append(os.path.join(local_path, filename))
+        # We need to get student name and id
+        user = sub.get("user", {})
+        student_id = user.get("id", "UnknownID")
+
+        for i, attachment in enumerate(sub.get("attachments", [])):
+            original_filename = attachment.get("filename", "file")
+            file_extension = os.path.splitext(original_filename)[1]
+            
+            # Create a generic, numbered filename to handle multiple attachments and preserve the extension
+            generic_filename = f"{label}_submission{file_extension}"
+            
+            # Create a corresponding metadata file
+            metadata_filename = f"{label}_submission_details.json"
+            metadata_path = os.path.join(local_path, metadata_filename)
+            
+            student = sub.get('user', {})
+            student_obj = {
+                'id': student_id,
+                'name': student.get('name', 'N/A'),
+            }
+            
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'score': sub.get('score'),
+                    'student': student_obj,
+                    'original_filename': original_filename
+                }, f, indent=2)
+            saved_files.append(metadata_path)
+
+            if download_file(attachment["url"], os.path.join(local_path, generic_filename)):
+                saved_files.append(os.path.join(local_path, generic_filename))
 
     return saved_files
 
@@ -252,6 +280,8 @@ def upload_files_to_canvas(course_id, folder_path, file_paths):
             print(f"  - Successfully uploaded {filename}")
         except Exception as e:
             print(f"  - Failed to upload {filename}: {e}")
+        
+        time.sleep(0.5)  # Pause to avoid hitting rate limits
             
 def generate_assignment_grade_report(grades_fetcher, assignment, local_path):
     """
