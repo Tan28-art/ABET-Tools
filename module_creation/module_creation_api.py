@@ -99,7 +99,6 @@ def find_file_folder(course_id, semester, year):
 
     Returns:
         list: A list of folder objects that match the semester-year combination.
-
     """
     print(f"Searching for course assignment data in course {course_id}...")
     endpoint = f"courses/{course_id}/folders"
@@ -123,7 +122,6 @@ def find_modules(course_id, semester, year):
     Returns:
         module object: A module object that matches the semester-year combination.
         False if the module does not exist.
-
     """
     print(f"Searching for course data module {semester.capitalize()} {year} in course {course_id}...")
     endpoint = f"courses/{course_id}/modules"
@@ -146,23 +144,19 @@ def find_files(course_id, semester, year, file_folders):
 
     Returns:
         list: A list of file objects that match the semester-year combination.
-
     """
     print(f"\nSearching for course assignment data in course {course_id}...")
     endpoint = f"courses/{course_id}/files"
-    #for f in file_folders:
-    f = file_folders[1]
-    folder_name = f.get("name")
-    folder_id = f.get("id")
-    print(f"Folder: {folder_name} | Id: {folder_id}")
-    files = get_paginated_list(endpoint,params={"folder_id":folder_id})
-   # response = requests.get(f"{API_BASE_URL}courses/{course_id}/files", headers=HEADERS, params={"folder_id":folder_id})
-   # response.raise_for_status()
-   # print(f"Status: {response.status_code}")
-    return[
-        f
-        for f in files
-    ]
+
+    folder_to_files = {}
+    for f in file_folders: #search for files associated with each folder
+        folder_name = f.get("name")
+        folder_id = f.get("id")
+        print(f"Folder: {folder_name} | Id: {folder_id}")
+        files = get_paginated_list(endpoint)
+        found_files = [f for f in files if f.get("folder_id") == folder_id]
+        folder_to_files[folder_name] = found_files # map folder_to_file provided folder_name key
+    return folder_to_files
 
 def upload_module_to_canvas(course_id, semester, year):
     """
@@ -191,27 +185,80 @@ def upload_module_to_canvas(course_id, semester, year):
         )
     return find_modules(course_id, semester, year)
 
-def create_module_items(course_id, semester, year, files, module_id):
+def add_single_module_item(course_id, module_id, file_id, file_name, position):
+    """
+    Adds a single module item to a module
+
+    Args:
+        course_id (str): The ID of the destination Canvas course.
+        module_id (str): The module_id of the module the file will be added to
+        file_id (str): The file_id of the file which will be added.
+        file_name (str): The name of the file which will be added.
+        position (int): controls grouping of files in the module
+
+    Returns:
+        int: updated position for grouping of files in the module
+    """
+    try:
+        module_item_data = {"module_item": {
+            "position": position,
+            "title": file_name,
+            "indent": 1,
+            "type": "File",
+            "content_id": file_id #single module id
+        }}
+        response = requests.post(f"{API_BASE_URL}courses/{course_id}/modules/{module_id}/items",headers=HEADERS,json=module_item_data)
+        response.raise_for_status()
+        print(f"Status: {response.status_code}")
+        return position + 1 #update position for next module items
+    except Exception as e:
+        print(f"  - Failed to upload: {e}")
+        response.raise_for_status()
+        print(f"Status: {response.status_code}")
+
+def add_title_module_item(course_id, module_id, assignment_name, position):
+    """
+    Adds the subheader for a given assignment_name - to allow for better grouping of assignment data
+
+    Args:
+        course_id (str): The ID of the destination Canvas course.
+        module_id (str): The module_id of the module the files will be added to
+        assignment_name (str): The name of the assignment which all added files are part of.
+        position (int): controls grouping of files in the module
+    Returns:
+        int: updated position for grouping of files in the module
+    """
+    try:
+        module_item_data = {"module_item": {
+            "position": position,
+            "title": assignment_name,
+            "indent": 0,
+            "type": "SubHeader",
+        }}
+        response = requests.post(f"{API_BASE_URL}courses/{course_id}/modules/{module_id}/items",headers=HEADERS,json=module_item_data)
+        response.raise_for_status()
+        print(f"Status: {response.status_code}")
+        return position + 1 #update position for next module items
+    except Exception as e:
+        print(f"  - Failed to upload: {e}")
+        response.raise_for_status()
+        print(f"Status: {response.status_code}")
+
+def create_module_items(course_id, file_folder, module_id, position):
     """
     Creates module items for a specific module_id.
 
     Args:
         course_id (str): The ID of the destination Canvas course.
-        files (list): list of the files which will be added --> currently only functions with a single file-id as a test
-        module_id (int): module_id of the module the files will be added to
+        file_folder (list): list of the files which will be added (from folder)
+        module_id (str): module_id of the module the files will be added to
+        position (int): controls grouping of files in the module
     """
-    try:
-        module_item_data = {"module_item": {
-            "title": "Test",
-            "type": "File",
-            "content_id": 118649115 #single module id
-        }}
-        response = requests.post(f"{API_BASE_URL}courses/{course_id}/modules/{module_id}/items",headers=HEADERS,json=module_item_data)
-        response.raise_for_status()
-        print(f"Status: {response.status_code}")
-    except Exception as e:
-        print(f"  - Failed to upload: {e}")
-
+    for folder in file_folder:
+        name = folder.get("display_name")
+        id = folder.get("id")
+        print(f"NAME: {name} | ID: {id}")
+        position = add_single_module_item(course_id, module_id, id, name, position)
 
 def main():
     """Main process to find, and store course assignment data in a module."""
@@ -233,14 +280,17 @@ def main():
     if module_obj == False:
         module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, "fall", "2025")
     
-
+    # find all files to place in module
     module_id = (module_obj.get("id"))
     files = find_files(DESTINATION_COURSE_ID, "fall", "2025", file_folders)
     for f in files:
-        print(f"{f.get("id")} for {f.get("display_name")}")
-
-  #  create_module_items(DESTINATION_COURSE_ID, "fall", "2025", files, module_id)
-
+        position = 1 # control grouping of files in the module
+        print(f"Name: {f}")
+        listed_files = files.get(f)
+        # add the "subheader" folder name
+        position = add_title_module_item(DESTINATION_COURSE_ID, module_id, f, position)
+        # add all module items for the given "subheader" folder-name
+        create_module_items(DESTINATION_COURSE_ID, "fall", "2025", listed_files, module_id, position)
     print("\nProcess finished.")
 
 
