@@ -260,6 +260,17 @@ def create_module_items(course_id, file_folder, module_id, position):
         print(f"NAME: {name} | ID: {id}")
         position = add_single_module_item(course_id, module_id, id, name, position)
 
+def delete_module(course_id, module_id):
+    try: 
+        response = requests.delete(f"{API_BASE_URL}courses/{course_id}/modules/{module_id}",headers=HEADERS)
+        response.raise_for_status()
+        print(f"Module {module_id} was deleted")
+        print(f"Status: {response.status_code}")
+    except Exception as e:
+        print(f"  - Failed to upload: {e}")
+        response.raise_for_status()
+        print(f"Status: {response.status_code}")
+
 def main():
     """Main process to find, and store course assignment data in a module."""
 
@@ -279,6 +290,10 @@ def main():
     module_obj = find_modules(DESTINATION_COURSE_ID, "fall", "2025")
     if module_obj == False:
         module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, "fall", "2025")
+    else: # delete current module and reupload it with current data
+        old_module_id = (module_obj.get("id"))
+        delete_module(DESTINATION_COURSE_ID, old_module_id)
+        module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, "fall", "2025")
     
     # find all files to place in module
     module_id = (module_obj.get("id"))
@@ -290,9 +305,8 @@ def main():
         # add the "subheader" folder name
         position = add_title_module_item(DESTINATION_COURSE_ID, module_id, f, position)
         # add all module items for the given "subheader" folder-name
-        create_module_items(DESTINATION_COURSE_ID, "fall", "2025", listed_files, module_id, position)
+        create_module_items(DESTINATION_COURSE_ID, listed_files, module_id, position)
     print("\nProcess finished.")
-
 
 if __name__ == "__main__":
     main()
