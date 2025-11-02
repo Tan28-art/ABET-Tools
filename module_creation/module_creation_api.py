@@ -3,13 +3,14 @@ import json
 import os
 import re
 import shutil
+import sys
 from urllib.parse import urljoin
 
 # CONFIGURATION
 CANVAS_DOMAIN = "canvas.asu.edu"
 CANVAS_TOKEN = os.getenv("canvas_access_token")
 SOURCE_COURSE_ID = "240102"
-DESTINATION_COURSE_ID = "240102"
+DESTINATION_COURSE_ID = "240102" #226368
 ABET_TAG = "abet" # Since the abet rubric will always have abet, we can search for this tag to identify relevant assignments
 
 # SETUP
@@ -100,7 +101,7 @@ def find_file_folder(course_id, semester, year):
     Returns:
         list: A list of folder objects that match the semester-year combination.
     """
-    print(f"Searching for course assignment data in course {course_id}...")
+    print(f"Finding all {semester} {year} folders in course {course_id}...")
     endpoint = f"courses/{course_id}/folders"
     file_folders = get_paginated_list(endpoint, params={"include[]":"folders"})
 
@@ -110,12 +111,13 @@ def find_file_folder(course_id, semester, year):
         if f"{semester}_{year}" in f.get("full_name").lower()
     ]
 
-def find_modules(course_id, semester, year):
+def find_modules(course_id, course, semester, year):
     """
     Find module labeled with the semester and year to check if it already exists.
 
     Args:
         course_id (str): The ID of the Canvas course to search within.
+        course (str): unique course title string
         semester (str): The semester to check modules for.
         year (str): The year to check modules for.
 
@@ -123,57 +125,64 @@ def find_modules(course_id, semester, year):
         module object: A module object that matches the semester-year combination.
         False if the module does not exist.
     """
-    print(f"Searching for course data module {semester.capitalize()} {year} in course {course_id}...")
+    print(f"Searching for {course} module {semester.capitalize()} {year} in course {course_id}...")
     endpoint = f"courses/{course_id}/modules"
     modules = get_paginated_list(endpoint)
 
     for m in modules:
-        if f"{semester} {year}" in m.get("name").lower():
+        if f"{course.lower()} {semester} {year}" in m.get("name").lower():
             print(f"{m.get("name")} already exists")
             return m
     return False
 
-def find_files(course_id, semester, year, file_folders):
+def find_files(course_id, course, semester, year, file_folders):
     """
     Finds all course data files for a specific semester-year combination.
 
     Args:
         course_id (str): The ID of the Canvas course to search within.
+        course (str): unique course title string
         semester (str): The semester to filter file folders by.
         year (str): The year to filter file folders by.
 
     Returns:
-        list: A list of file objects that match the semester-year combination.
+        list: A list of file objects that match the course, semester-year combination.
     """
-    print(f"\nSearching for course assignment data in course {course_id}...")
+    print(f"\nSearching for {course} assignment data in course {course_id}...")
     endpoint = f"courses/{course_id}/files"
 
     folder_to_files = {}
     for f in file_folders: #search for files associated with each folder
-        folder_name = f.get("name")
-        folder_id = f.get("id")
-        print(f"Folder: {folder_name} | Id: {folder_id}")
-        files = get_paginated_list(endpoint)
-        found_files = [f for f in files if f.get("folder_id") == folder_id]
-        folder_to_files[folder_name] = found_files # map folder_to_file provided folder_name key
+        full_folder_name = f.get("full_name")
+        abbrv_name = f.get("name")
+        if f"{semester.capitalize()}_{year}" in abbrv_name: #sort out main folder name
+            continue
+        else:
+            if course in full_folder_name:
+                folder_id = f.get("id")
+                print(f"Folder: {full_folder_name} | Id: {folder_id}")
+                files = get_paginated_list(endpoint)
+                found_files = [f for f in files if f.get("folder_id") == folder_id]
+                folder_to_files[abbrv_name] = found_files # map folder_to_file provided folder_name key
     return folder_to_files
 
-def upload_module_to_canvas(course_id, semester, year):
+def upload_module_to_canvas(course_id, course, semester, year):
     """
     Uploads a module for a course's data to Canvas.
 
     Args:
         course_id (str): The ID of the destination Canvas course.
+        course (str): unique course title string
         semester (str): Semester to label the module by.
         year (str): Year to label the module by.
     """
-    module_name = f"{semester.capitalize()} {year} Course Data"
+    module_name = f"{course} {semester.capitalize()} {year} Course Data"
     print(f"Uploading '{module_name}' module to Canvas...")
     try:
         module_data = {
             "module": {
                 "name": module_name,
-                "position": 1
+                "position": 1,
             }
         }
         response = requests.post(f"{API_BASE_URL}courses/{course_id}/modules",headers=HEADERS,json=module_data)
@@ -183,7 +192,7 @@ def upload_module_to_canvas(course_id, semester, year):
         print(
             f"API Error on: {e}\nResponse: {e.response.text if e.response else 'N/A'}"
         )
-    return find_modules(course_id, semester, year)
+    return find_modules(course_id, course, semester, year)
 
 def add_single_module_item(course_id, module_id, file_id, file_name, position):
     """
@@ -205,7 +214,7 @@ def add_single_module_item(course_id, module_id, file_id, file_name, position):
             "title": file_name,
             "indent": 1,
             "type": "File",
-            "content_id": file_id #single module id
+            "content_id": file_id, #single module id
         }}
         response = requests.post(f"{API_BASE_URL}courses/{course_id}/modules/{module_id}/items",headers=HEADERS,json=module_item_data)
         response.raise_for_status()
@@ -274,38 +283,50 @@ def delete_module(course_id, module_id):
 def main():
     """Main process to find, and store course assignment data in a module."""
 
-    course_info = api_request(f"courses/{DESTINATION_COURSE_ID}")
-    canvas_folder = f"Fall_2025_{course_info.get('name', 'UnknownCourse')}"
+    if len(sys.argv) == 3:
+        semester = sys.argv[1]   
+        year = sys.argv[2]
+        print(f"Searching for all course data from {semester} {year}...")
+    else:
+        print("Usage: python module_creation_api.py <semester> <year>")
+        return
 
-    # find all folders labeled with "fall_2025"
-    file_folders = find_file_folder(DESTINATION_COURSE_ID, "fall", "2025")
+    # find all folders labeled with "semester_year"
+    file_folders = find_file_folder(DESTINATION_COURSE_ID, semester, year)
+    unique_courses = set()
     if not file_folders:
         print("No file folders found.")
         return
     print(f"\nFound {len(file_folders)} file folders with course data.")
     for folder in file_folders:
+        source_course = folder['full_name'].rsplit('/')[1]
+        unique_courses.add(source_course.split('_')[2]) # add name after semester_year identifier
         print(f"\nFound: {folder['full_name']}")
 
-    # upload module labeled "fall_2025" only if it is unique
-    module_obj = find_modules(DESTINATION_COURSE_ID, "fall", "2025")
-    if module_obj == False:
-        module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, "fall", "2025")
-    else: # delete current module and reupload it with current data
-        old_module_id = (module_obj.get("id"))
-        delete_module(DESTINATION_COURSE_ID, old_module_id)
-        module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, "fall", "2025")
-    
-    # find all files to place in module
-    module_id = (module_obj.get("id"))
-    files = find_files(DESTINATION_COURSE_ID, "fall", "2025", file_folders)
-    for f in files:
-        position = 1 # control grouping of files in the module
-        print(f"Name: {f}")
-        listed_files = files.get(f)
-        # add the "subheader" folder name
-        position = add_title_module_item(DESTINATION_COURSE_ID, module_id, f, position)
-        # add all module items for the given "subheader" folder-name
-        create_module_items(DESTINATION_COURSE_ID, listed_files, module_id, position)
+    # repeat for each source course:
+    for course in unique_courses:
+        print(course)
+        # upload module labeled "source_course semester_year" only if it is unique
+        module_obj = find_modules(DESTINATION_COURSE_ID, course, semester, year)
+        if module_obj == False:
+            module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, course, semester, year)
+        else: # delete current module and reupload it with current data
+            old_module_id = (module_obj.get("id"))
+            delete_module(DESTINATION_COURSE_ID, old_module_id)
+            module_obj = upload_module_to_canvas(DESTINATION_COURSE_ID, course, semester, year)
+
+        # find all files to place in module
+        module_id = (module_obj.get("id"))
+        files = find_files(DESTINATION_COURSE_ID, course, semester, year, file_folders)
+        for f in files:
+            position = 1 # control grouping of files in the module
+            print(f"Name: {f}")
+            listed_files = files.get(f)
+            # add the "subheader" folder name
+            position = add_title_module_item(DESTINATION_COURSE_ID, module_id, f, position)
+            # add all module items for the given "subheader" folder-name
+            create_module_items(DESTINATION_COURSE_ID, listed_files, module_id, position)
+
     print("\nProcess finished.")
 
 if __name__ == "__main__":

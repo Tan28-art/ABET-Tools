@@ -1,0 +1,42 @@
+2025-11-02 11:50:27,215 - INFO - Generating grade reports for course: 240102
+2025-11-02 11:50:27,215 - INFO - Starting comprehensive grade fetch for course 240102
+2025-11-02 11:50:27,215 - INFO - Fetching assignments for course 240102
+2025-11-02 11:50:28,131 - INFO - Successfully fetched 8 assignments
+2025-11-02 11:50:28,131 - INFO - Fetching students for course 240102
+2025-11-02 11:50:28,598 - INFO - Successfully fetched 2 students
+2025-11-02 11:50:28,599 - INFO - Fetching submissions for assignment: Test
+2025-11-02 11:50:28,600 - INFO - Fetching submissions for assignment 6781491
+2025-11-02 11:50:28,805 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:28,806 - INFO - Fetching submissions for assignment: Team2_Test1
+2025-11-02 11:50:28,807 - INFO - Fetching submissions for assignment 6789676
+2025-11-02 11:50:29,058 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:29,059 - INFO - Fetching submissions for assignment: Operating Systems & CUDA Quiz
+2025-11-02 11:50:29,059 - INFO - Fetching submissions for assignment 6801834
+2025-11-02 11:50:29,259 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:29,260 - INFO - Fetching submissions for assignment: What is CUDA and the Kernel? How Do They Relate?
+2025-11-02 11:50:29,260 - INFO - Fetching submissions for assignment 6801843
+2025-11-02 11:50:29,466 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:29,467 - INFO - Fetching submissions for assignment: Roll Call Attendance
+2025-11-02 11:50:29,468 - INFO - Fetching submissions for assignment 6801889
+2025-11-02 11:50:29,702 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:29,702 - INFO - Fetching submissions for assignment: OS Assignment 1
+2025-11-02 11:50:29,703 - INFO - Fetching submissions for assignment 6803004
+2025-11-02 11:50:30,008 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:30,009 - INFO - Fetching submissions for assignment: OS Assignment 2
+2025-11-02 11:50:30,010 - INFO - Fetching submissions for assignment 6803017
+2025-11-02 11:50:30,269 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:30,270 - INFO - Fetching submissions for assignment: OS Assignment 3
+2025-11-02 11:50:30,270 - INFO - Fetching submissions for assignment 6803030
+2025-11-02 11:50:30,547 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:50:30,549 - INFO - Successfully completed comprehensive grade fetch
+2025-11-02 11:50:30,561 - INFO - Grades data saved to temp_assignment_files\grades_data_240102.json
+2025-11-02 11:50:30,561 - INFO - Grades summary saved to temp_assignment_files\grades_summary_240102.csv
+2025-11-02 11:50:30,561 - INFO - Successfully generated grade reports: temp_assignment_files\grades_data_240102.json, temp_assignment_files\grades_summary_240102.csv
+2025-11-02 11:50:40,838 - INFO - Fetching submissions for assignment 6789676
+2025-11-02 11:50:41,093 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:51:04,077 - INFO - Fetching submissions for assignment 6803004
+2025-11-02 11:51:04,391 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:51:28,597 - INFO - Fetching submissions for assignment 6803017
+2025-11-02 11:51:28,851 - INFO - Successfully fetched 3 submissions
+2025-11-02 11:51:54,724 - INFO - Fetching submissions for assignment 6803030
+2025-11-02 11:51:54,986 - INFO - Successfully fetched 3 submissions

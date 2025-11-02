@@ -1,15 +1,18 @@
+import csv
+import time
 import requests
 import json
 import os
 import re
 import shutil
 from urllib.parse import urljoin
+from fetch_grades import CanvasGradesFetcher
 
 # CONFIGURATION
 CANVAS_DOMAIN = "canvas.asu.edu"
 CANVAS_TOKEN = os.getenv("canvas_access_token")
-SOURCE_COURSE_ID = "240102"
-DESTINATION_COURSE_ID = "240102"
+SOURCE_COURSE_ID = "240102" # Testing canvas shell
+DESTINATION_COURSE_ID = "226368" # ABET Review canvas shell
 ABET_TAG = "abet" # Since the abet rubric will always have abet, we can search for this tag to identify relevant assignments
 
 # SETUP
@@ -124,7 +127,7 @@ def get_extreme_submissions(course_id, assignment_id):
         tuple: A tuple containing the highest and lowest graded submission objects, or (None, None).
     """
     endpoint = f"courses/{course_id}/assignments/{assignment_id}/submissions"
-    submissions = get_paginated_list(endpoint)
+    submissions = get_paginated_list(endpoint, params={"include[]": "user"}) # get all submissions with user info
 
     if not submissions:
         return None, None
@@ -138,7 +141,7 @@ def get_extreme_submissions(course_id, assignment_id):
         key=lambda s: s["score"],
     )
 
-    return (graded[-1], graded[0]) if graded else (None, None)
+    return (graded[-1], graded[0]) if graded else (None, None) # return highest and lowest
 
 
 def download_file(url, local_path):
@@ -152,6 +155,7 @@ def download_file(url, local_path):
     Returns:
         bool: True if the download was successful, False otherwise.
     """
+    # Python shutil: https://docs.python.org/3/library/shutil.html#shutil.copyfileobj
     try:
         with api_request(url, stream=True) as r, open(local_path, "wb") as f:
             shutil.copyfileobj(r.raw, f)
@@ -203,10 +207,37 @@ def extract_and_save_artifacts(assignment):
     for sub, label in [(highest, "highest"), (lowest, "lowest")]:
         if not (sub and sub.get("attachments")):
             continue
-        for attachment in sub.get("attachments", []):
-            filename = f"{label}_grade_{sub['score']}_{attachment['filename']}"
-            if download_file(attachment["url"], os.path.join(local_path, filename)):
-                saved_files.append(os.path.join(local_path, filename))
+        # We need to get student name and id
+        user = sub.get("user", {})
+        student_id = user.get("id", "UnknownID")
+
+        for i, attachment in enumerate(sub.get("attachments", [])):
+            original_filename = attachment.get("filename", "file")
+            file_extension = os.path.splitext(original_filename)[1]
+            
+            # Create a generic, numbered filename to handle multiple attachments and preserve the extension
+            generic_filename = f"{label}_submission{file_extension}"
+            
+            # Create a corresponding metadata file
+            metadata_filename = f"{label}_submission_details.json"
+            metadata_path = os.path.join(local_path, metadata_filename)
+            
+            student = sub.get('user', {})
+            student_obj = {
+                'id': student_id,
+                'name': student.get('name', 'N/A'),
+            }
+            
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'score': sub.get('score'),
+                    'student': student_obj,
+                    'original_filename': original_filename
+                }, f, indent=2)
+            saved_files.append(metadata_path)
+
+            if download_file(attachment["url"], os.path.join(local_path, generic_filename)):
+                saved_files.append(os.path.join(local_path, generic_filename))
 
     return saved_files
 
@@ -249,6 +280,44 @@ def upload_files_to_canvas(course_id, folder_path, file_paths):
             print(f"  - Successfully uploaded {filename}")
         except Exception as e:
             print(f"  - Failed to upload {filename}: {e}")
+        
+        time.sleep(0.5)  # Pause to avoid hitting rate limits
+            
+def generate_assignment_grade_report(grades_fetcher, assignment, local_path):
+    """
+    Creates a detailed CSV grade report for a single assignment.
+
+    Args:
+        grades_fetcher (CanvasGradesFetcher): The fetcher instance to get data.
+        assignment (dict): The assignment object.
+        local_path (str): The local directory to save the report in.
+
+    Returns:
+        str or None: The file path to the generated CSV, or None if no submissions exist.
+    """
+    print("  - Generating detailed grade report...")
+    submissions = grades_fetcher.fetch_assignment_submissions(assignment['course_id'], assignment['id'])
+    if not submissions:
+        print("  - No submissions found for this assignment.")
+        return None
+
+    report_path = os.path.join(local_path, f"grade_report_{assignment['id']}.csv")
+    header = ['student_id', 'student_name', 'score', 'submitted_at', 'workflow_state']
+
+    with open(report_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for sub in submissions:
+            user = sub.get('user', {})
+            writer.writerow([
+                user.get('id', 'N/A'),
+                user.get('name', 'N/A'),
+                sub.get('score', ''),
+                sub.get('submitted_at', 'N/A'),
+                sub.get('workflow_state', 'N/A')
+            ])
+    print(f"  - Detailed grade report saved to {report_path}")
+    return report_path
 
 # Steps Overview:
 # 1. Setup: Clean and create a temporary directory for file storage.
@@ -261,9 +330,20 @@ def main():
     if os.path.exists(TEMP_DIR):
         shutil.rmtree(TEMP_DIR)
     os.makedirs(TEMP_DIR)
+    
+    grades_fetcher = CanvasGradesFetcher()
 
     course_info = api_request(f"courses/{SOURCE_COURSE_ID}")
-    semester_year_code = f"Fall_2025_{course_info.get('name', 'UnknownCourse')}"
+    course_name = course_info.get("name") if course_info.get("name") else course_info.get("course_code", "UnknownCourse").replace(" ", "_")
+    semester_year_code = f"Fall_2025_{course_name}"
+    
+    print("\nProcessing: Generating Course-Wide Grade Reports")
+    grade_report_files = grades_fetcher.generate_grade_reports(int(SOURCE_COURSE_ID), TEMP_DIR)
+    if grade_report_files:
+        grades_canvas_folder = f"{semester_year_code}/_Course_Grade_Reports"
+        upload_files_to_canvas(DESTINATION_COURSE_ID, grades_canvas_folder, list(grade_report_files))
+    else:
+        print("Could not generate course-wide grade reports.")
 
     abet_assignments = find_abet_assignments(SOURCE_COURSE_ID)
     if not abet_assignments:
@@ -275,7 +355,12 @@ def main():
         print(f"\nProcessing: {assignment['name']} ")
 
         local_files = extract_and_save_artifacts(assignment)
+        assignment_folder_path = os.path.join(TEMP_DIR, f"{assignment['id']}_{assignment['name'].replace(' ', '_')}")
+        assignment_report_path = generate_assignment_grade_report(grades_fetcher, assignment, assignment_folder_path)
 
+        if assignment_report_path:
+            local_files.append(assignment_report_path)
+            
         if local_files:
             canvas_folder = (
                 f"{semester_year_code}/{assignment['name'].replace(' ', '_')}"
