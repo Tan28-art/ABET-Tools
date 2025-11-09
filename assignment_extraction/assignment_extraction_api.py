@@ -1,3 +1,4 @@
+from collections import defaultdict
 import csv
 import time
 import requests
@@ -39,6 +40,7 @@ def api_request(url, method="GET", params=None, data=None, stream=False):
     if not url.startswith("https://"):
         url = urljoin(API_BASE_URL, url)
     try:
+        time.sleep(0.2)  # To avoid hitting rate limits
         response = requests.request(
             method, url, headers=HEADERS, params=params, data=data, stream=stream
         )
@@ -113,7 +115,39 @@ def find_abet_assignments(course_id):
             ABET_TAG in r.get("description", "").lower() for r in a.get("rubric", [])
         )
     ]
+    
+def extract_rubric_assessment_data(submission):
+    """Extracts and anonymizes rubric assessment data from a submission."""
+    rubric_data = submission.get('rubric_assessment', {})
+    if not rubric_data:
+        return None
+    return {
+        cid: {'points': data.get('points'), 'comments': data.get('comments', '')}
+        for cid, data in rubric_data.items()
+    }
 
+def find_abet_outcomes(all_assignments: list[dict]) -> tuple[defaultdict, dict]:
+    """Scans assignments, groups them by ABET outcome, and extracts outcome details."""
+    outcome_map = defaultdict(list)
+    outcome_details = {}  # Store title, description, and long_description for each outcome
+    for assign in all_assignments:
+        if not (rubric := assign.get("rubric")): continue
+        for criterion in rubric:
+            # We check the main 'description' for the ABET tag
+            if "abet" in criterion.get("description", "").lower() and (oid := criterion.get("outcome_id")):
+                outcome_map[oid].append(assign)
+                if oid not in outcome_details:
+                    # Use 'description' for the title and main outcome text
+                    title_description = criterion.get("description", "").strip()
+                    long_description = criterion.get("long_description", "").strip()
+                    clean_title = re.sub(r'<[^>]+>', '', title_description).strip()
+                    
+                    outcome_details[oid] = {
+                        "title": clean_title,
+                        "full_description": title_description,
+                        "long_description": long_description
+                    }
+    return outcome_map, outcome_details
 
 def get_extreme_submissions(course_id, assignment_id):
     """
@@ -204,41 +238,26 @@ def extract_and_save_artifacts(assignment):
         saved_files.append(path)
 
     highest, lowest = get_extreme_submissions(assignment["course_id"], assignment["id"])
-    for sub, label in [(highest, "highest"), (lowest, "lowest")]:
-        if not (sub and sub.get("attachments")):
-            continue
-        # We need to get student name and id
-        user = sub.get("user", {})
-        student_id = user.get("id", "UnknownID")
+    for sub, label in [(highest, "highest_graded"), (lowest, "lowest_graded")]:
+        if not (sub and sub.get("attachments")): continue
 
-        for i, attachment in enumerate(sub.get("attachments", [])):
-            original_filename = attachment.get("filename", "file")
-            file_extension = os.path.splitext(original_filename)[1]
-            
-            # Create a generic, numbered filename to handle multiple attachments and preserve the extension
-            generic_filename = f"{label}_submission{file_extension}"
-            
-            # Create a corresponding metadata file
-            metadata_filename = f"{label}_submission_details.json"
-            metadata_path = os.path.join(local_path, metadata_filename)
-            
-            student = sub.get('user', {})
-            student_obj = {
-                'id': student_id,
-                'name': student.get('name', 'N/A'),
-            }
-            
-            with open(metadata_path, 'w', encoding='utf-8') as f:
-                json.dump({
-                    'score': sub.get('score'),
-                    'student': student_obj,
-                    'original_filename': original_filename
-                }, f, indent=2)
-            saved_files.append(metadata_path)
+        attachment = sub["attachments"][0]
+        ext = os.path.splitext(attachment.get("filename", ""))[1]
+        generic_filename = f"{label}_submission{ext}"
+        
+        if download_file(attachment["url"], os.path.join(local_path, generic_filename)):
+            saved_files.append(os.path.join(local_path, generic_filename))
 
-            if download_file(attachment["url"], os.path.join(local_path, generic_filename)):
-                saved_files.append(os.path.join(local_path, generic_filename))
-
+        # Create anonymized metadata JSON
+        metadata_path = os.path.join(local_path, f"{label}_details.json")
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                'score': sub.get('score'),
+                'points_possible': assignment.get('points_possible'),
+                'original_filename': attachment.get("filename"),
+                'rubric_assessment': extract_rubric_assessment_data(sub)
+            }, f, indent=2)
+        saved_files.append(metadata_path)
     return saved_files
 
 
@@ -251,37 +270,47 @@ def upload_files_to_canvas(course_id, folder_path, file_paths):
         folder_path (str): The target folder path within the course's "Files" section.
         file_paths (list): A list of local paths to the files to be uploaded.
     """
+    # Will try to upload each file up to MAX_RETRIES times
+    MAX_RETRIES = 3
+    
     print(f"Uploading {len(file_paths)} files to Canvas folder '{folder_path}'...")
     for file_path in file_paths:
-        try:
-            filename = os.path.basename(file_path)
-            # Add 'on_duplicate': 'overwrite' to replace existing files.
-            init_data = {
-                "name": filename,
-                "parent_folder_path": folder_path,
-                "on_duplicate": "overwrite",
-            }
-            upload_info = api_request(
-                f"courses/{course_id}/files", "POST", data=init_data
-            )
-            if not upload_info:
-                continue
-
-            with open(file_path, "rb") as f:
-                upload_response = requests.post(
-                    upload_info["upload_url"],
-                    data=upload_info["upload_params"],
-                    files={"file": f},
+        for attempt in range(MAX_RETRIES):
+            try:
+                filename = os.path.basename(file_path)
+                # Add 'on_duplicate': 'overwrite' to replace existing files.
+                init_data = {
+                    "name": filename,
+                    "parent_folder_path": folder_path,
+                    "on_duplicate": "overwrite",
+                }
+                upload_info = api_request(
+                    f"courses/{course_id}/files", "POST", data=init_data
                 )
-                upload_response.raise_for_status()
+                if not upload_info:
+                    continue
 
-            if confirmation := upload_response.json():
-                api_request(confirmation["location"], "GET")
-            print(f"  - Successfully uploaded {filename}")
-        except Exception as e:
-            print(f"  - Failed to upload {filename}: {e}")
+                with open(file_path, "rb") as f:
+                    upload_response = requests.post(
+                        upload_info["upload_url"],
+                        data=upload_info["upload_params"],
+                        files={"file": f},
+                    )
+                    upload_response.raise_for_status()
+
+                if confirmation := upload_response.json():
+                    api_request(confirmation["location"], "GET")
+                print(f"  - Successfully uploaded {filename}")
+                break
+            except Exception as e:
+                    print(f"  - ERROR on attempt {attempt + 1}/{MAX_RETRIES} for {filename}: {e}")
+                    if attempt < MAX_RETRIES - 1:
+                        print("    Retrying in 2 seconds...")
+                        time.sleep(2)  # Wait before retrying
+                    else:
+                        print(f"  - All {MAX_RETRIES} attempts failed for {filename}. Giving up.")
         
-        time.sleep(0.5)  # Pause to avoid hitting rate limits
+        time.sleep(1)  # Pause to avoid hitting rate limits
             
 def generate_assignment_grade_report(grades_fetcher, assignment, local_path):
     """
@@ -302,7 +331,7 @@ def generate_assignment_grade_report(grades_fetcher, assignment, local_path):
         return None
 
     report_path = os.path.join(local_path, f"grade_report_{assignment['id']}.csv")
-    header = ['student_id', 'student_name', 'score', 'submitted_at', 'workflow_state']
+    header = ['score', 'submitted_at', 'workflow_state']
 
     with open(report_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
@@ -310,14 +339,76 @@ def generate_assignment_grade_report(grades_fetcher, assignment, local_path):
         for sub in submissions:
             user = sub.get('user', {})
             writer.writerow([
-                user.get('id', 'N/A'),
-                user.get('name', 'N/A'),
-                sub.get('score', ''),
-                sub.get('submitted_at', 'N/A'),
+                user.get('id', 'N/A'), user.get('name', 'N/A'),
+                sub.get('score', ''), sub.get('submitted_at', 'N/A'),
                 sub.get('workflow_state', 'N/A')
             ])
-    print(f"  - Detailed grade report saved to {report_path}")
+    print(f"  - Grade report saved to {report_path}")
     return report_path
+
+def generate_outcome_reports(grades_fetcher, outcome_map, outcome_details, course_info, semester_code):
+    """Generates and uploads a rich JSON summary report for each ABET outcome."""
+    print("\nGenerating Rich ABET Outcome JSON Reports")
+    local_reports_to_upload = []
+    
+    for outcome_id, assignments in outcome_map.items():
+        all_outcome_submissions = []
+        contributing_assignments = []
+
+        for assign in assignments:
+            submissions = grades_fetcher.fetch_assignment_submissions(SOURCE_COURSE_ID, assign['id'])
+            graded_subs = [s for s in submissions if s.get('score') is not None]
+            
+            points_possible = assign.get('points_possible') or 1
+            for s in graded_subs:
+                s['points_possible_for_calc'] = points_possible
+            all_outcome_submissions.extend(graded_subs)
+            
+            scores = [s['score'] for s in graded_subs]
+            
+            # Create a copy of the full assignment object from Canvas
+            assignment_data = assign.copy()
+            # Add a new key with our calculated assessment statistics
+            assignment_data['assessment_stats'] = {
+                "sample_size": len(scores),
+                "average_score": sum(scores) / len(scores) if scores else 0
+            }
+            contributing_assignments.append(assignment_data)
+        
+        if not all_outcome_submissions: continue
+
+        num_competent = sum(1 for s in all_outcome_submissions if (s['score'] / s['points_possible_for_calc']) >= 0.7)
+        total_graded = len(all_outcome_submissions)
+        percent_competent = (num_competent / total_graded) * 100 if total_graded else 0
+        outcome_info = outcome_details.get(outcome_id, {})
+
+        report_data = {
+            "outcome_title": outcome_info.get("title", "Unknown Outcome"),
+            "outcome_full_description": outcome_info.get("full_description", ""),
+            "outcome_long_description": outcome_info.get("long_description", ""),
+            "course_info": course_info,  # Dumps the entire course info object
+            "assessment_summary": {
+                "total_students_assessed": total_graded,
+                "number_competent": num_competent,
+                "percent_competent": round(percent_competent, 2),
+                "outcome_met": percent_competent >= 70.0
+            },
+            "contributing_assignments": contributing_assignments
+        }
+        
+        title_str = outcome_info.get("title", f"Outcome_{outcome_id}")
+        match = re.search(r'(CS|CSE)\s*ABET\s*\d+', title_str, re.IGNORECASE)
+        clean_name = match.group(0).replace(' ', '_') if match else re.sub(r'[^\\w-]', '_', title_str)
+        report_filename = f"OUTCOME_{clean_name}.json"
+
+        report_path = os.path.join(TEMP_DIR, report_filename)
+        with open(report_path, 'w', encoding='utf-8') as f:
+            json.dump(report_data, f, indent=4)
+        local_reports_to_upload.append(report_path)
+
+    if local_reports_to_upload:
+        canvas_folder = f"{semester_code}/_ABET_Outcome_Reports"
+        upload_files_to_canvas(DESTINATION_COURSE_ID, canvas_folder, local_reports_to_upload)
 
 # Steps Overview:
 # 1. Setup: Clean and create a temporary directory for file storage.
@@ -333,7 +424,7 @@ def main():
     
     grades_fetcher = CanvasGradesFetcher()
 
-    course_info = api_request(f"courses/{SOURCE_COURSE_ID}")
+    course_info = api_request(f"courses/{SOURCE_COURSE_ID}", params={"include[]": "syllabus_body"})
     course_name = course_info.get("name") if course_info.get("name") else course_info.get("course_code", "UnknownCourse").replace(" ", "_")
     semester_year_code = f"Fall_2025_{course_name}"
     
@@ -368,6 +459,13 @@ def main():
             upload_files_to_canvas(DESTINATION_COURSE_ID, canvas_folder, local_files)
         else:
             print("No artifacts found to upload for this assignment.")
+            
+    # Outcome folders
+    outcome_map, outcome_details = find_abet_outcomes(abet_assignments)
+    if outcome_map:
+        generate_outcome_reports(grades_fetcher, outcome_map, outcome_details, course_info, semester_year_code)
+    else:
+        print("\nNo assignments with rubric outcomes found for summary report generation.")
 
     shutil.rmtree(TEMP_DIR)
     print("\nProcess finished.")

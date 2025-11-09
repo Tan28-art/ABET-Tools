@@ -180,54 +180,32 @@ class CanvasGradesFetcher:
         """
         logger.info(f"Starting comprehensive grade fetch for course {course_id}")
         
-        # Fetch course data
-        course_data = {
+        grades_summary = {}
+        assignments = self.fetch_course_assignments(course_id)
+        
+        for assignment in assignments:
+            submissions = self.fetch_assignment_submissions(course_id, assignment['id'])
+            
+            graded_submissions = [s for s in submissions if s.get('grade') is not None]
+            if graded_submissions:
+                scores = [float(s['score']) for s in graded_submissions if s['score'] is not None]
+                grades_summary[assignment['name']] = {
+                    'total_submissions': len(submissions),
+                    'graded_submissions': len(graded_submissions),
+                    'average_grade': sum(scores) / len(scores) if scores else 0,
+                    'max_grade': max(scores) if scores else 0,
+                    'min_grade': min(scores) if scores else 0,
+                    'points_possible': assignment.get('points_possible', 0)
+                }
+        
+        logger.info("Successfully completed grades summary fetch")
+        
+        # Return a much simpler, summary-only dictionary
+        return {
             'course_id': course_id,
             'fetch_timestamp': datetime.now().isoformat(),
-            'assignments': [],
-            'students': [],
-            'grades_summary': {}
+            'grades_summary': grades_summary
         }
-        
-        try:
-            # Fetch assignments
-            assignments = self.fetch_course_assignments(course_id)
-            course_data['assignments'] = assignments
-            
-            # Fetch students
-            students = self.fetch_course_students(course_id)
-            course_data['students'] = students
-            
-            # Fetch submissions for each assignment
-            for assignment in assignments:
-                assignment_id = assignment['id']
-                assignment_name = assignment['name']
-                
-                logger.info(f"Fetching submissions for assignment: {assignment_name}")
-                submissions = self.fetch_assignment_submissions(course_id, assignment_id)
-                
-                # Add submissions to assignment data
-                assignment['submissions'] = submissions
-                
-                # Calculate grade statistics
-                graded_submissions = [s for s in submissions if s.get('grade') is not None]
-                if graded_submissions:
-                    grades = [float(s['score']) for s in graded_submissions if s['score']]
-                    course_data['grades_summary'][assignment_name] = {
-                        'total_submissions': len(submissions),
-                        'graded_submissions': len(graded_submissions),
-                        'average_grade': sum(grades) / len(grades) if grades else 0,
-                        'max_grade': max(grades) if grades else 0,
-                        'min_grade': min(grades) if grades else 0,
-                        'points_possible': assignment.get('points_possible', 0)
-                    }
-            
-            logger.info("Successfully completed comprehensive grade fetch")
-            return course_data
-            
-        except Exception as e:
-            logger.error(f"Error in comprehensive grade fetch: {e}")
-            raise
     
     def save_grades_to_json(self, grades_data: Dict[str, Any], filename: str = None) -> str:
         """Save grades data to JSON file.
