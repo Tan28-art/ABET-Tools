@@ -181,7 +181,6 @@ def extract_and_save_syllabus(course_id, course_info, canvas_token):
     # Regex to find file links: /files/12345
     file_ids = re.findall(r"/files/(\d+)", body)
     for fid in file_ids:
-        # Pass print_error=False to suppress 403 logs for broken/locked files
         f_info = api_request(f"files/{fid}", canvas_token)
 
         if f_info and f_info.get("filename", "").lower().endswith(".pdf"):
