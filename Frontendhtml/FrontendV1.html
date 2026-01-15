@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ABET Tools</title>
+
+<style>
+/* MAKE FOOTER STICK TO BOTTOM */
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page-content {
+    flex: 1;  /* grows to push footer to bottom */
+}
+
+/* GLOBAL CENTERING CONTAINER */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* TOP BAR */
+.top-bar {
+    background: #f2f2f2;
+    padding: 5px 20px;
+    text-align: right;
+    font-size: 14px;
+}
+
+.top-bar a {
+    color: #333;
+    margin-left: 15px;
+    text-decoration: none;
+}
+
+/* HEADER */
+.main-header {
+    display: flex;
+    align-items: center;
+    padding: 20px 0;
+    gap: 20px;
+}
+
+.main-header img {
+    width: 100px;
+    height: 80px;
+}
+
+.main-header h1 {
+    font-size: 38px;
+    margin: 0;
+}
+
+/* NAVIGATION */
+.nav-bar {
+    display: flex;
+    border-top: 1px solid #ddd;
+    border-bottom: 2px solid #8C1D40;
+    padding: 10px 0;
+    gap: 25px;
+}
+
+/* base link style */
+.nav-bar a {
+    position: relative;
+    text-decoration: none;
+    color: #333;
+    font-size: 16px;
+    padding-bottom: 5px;
+}
+
+/* yellow bar that animates in on hover */
+.nav-bar a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 0;
+    height: 3px;
+    background: #FFC627;         /* ASU yellow */
+    transition: width 0.25s ease;
+}
+
+/* on hover/focus, fill bar across the link */
+.nav-bar a:hover::after,
+.nav-bar a:focus::after {
+    width: 100%;
+}
+
+/* active tab: bar is always visible and maroon */
+.nav-bar a.active {
+    font-weight: bold;
+}
+.nav-bar a.active::after {
+    width: 100%;
+    background: #8C1D40;
+    transition: none;
+}
+
+/* CENTERED SECTION (search + subtabs + content) */
+.center-section {
+    max-width: 900px;
+    margin: 25px auto 40px auto;
+}
+
+/* SEARCH TITLE */
+.search-title {
+    background: #FFC627;
+    display: block;
+    width: fit-content;
+    padding: 10px 20px;
+    font-size: 34px;
+    font-weight: bold;
+    margin: 10px auto 0;  /* center the yellow box */
+}
+
+/* ===== UPLOAD + DROPDOWN TOOL BAR ===== */
+.search-area {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 0;
+    margin: 20px 0;
+}
+
+/* left clickable upload area */
+.upload-section {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border: 1px solid #ccc;
+    border-right: none;
+    border-radius: 999px 0 0 999px;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.upload-line {
+    width: 3px;
+    height: 24px;
+    background: #8C1D40;   /* maroon vertical line */
+    margin-right: 10px;
+}
+
+.file-icon {
+    font-size: 18px;
+    margin-right: 8px;
+}
+
+.upload-text {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* hide the real file input; label handles the click */
+.upload-section input[type="file"] {
+    display: none;
+}
+
+/* dropdown of programs */
+.tool-select {
+    padding: 10px 14px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-left: none;
+    border-right: none;
+    min-width: 220px;
+}
+
+/* run button on the right */
+.search-area button {
+    background: #8C1D40;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 0 999px 999px 0;
+}
+
+/* SUBTABS */
+.subtabs {
+    display: flex;
+    gap: 25px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    justify-content: center;
+}
+
+.subtabs .subtab {
+    padding-bottom: 6px;
+    cursor: pointer;
+}
+
+/* underline + bold for active subtab */
+.subtabs .subtab.active {
+    border-bottom: 3px solid #8C1D40;
+    font-weight: bold;
+}
+
+/* MAIN CONTENT AREA */
+.main-content {
+    margin-top: 30px;
+}
+
+/* each tab’s content wrapper */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.content {
+    display: flex;
+    justify-content: space-between;
+    gap: 50px;
+}
+
+/* LEFT COLUMN */
+.content-left {
+    width: 60%;
+}
+
+.content-left h2 {
+    font-size: 28px;
+    margin-top: 0;
+}
+
+/* RIGHT COLUMN */
+.content-right {
+    width: 30%;
+}
+
+.content-right h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.content-right a {
+    display: block;
+    color: #8C1D40;
+    text-decoration: none;
+    margin: 6px 0;
+}
+
+/* ===== FOOTER (ASU-STYLE) ===== */
+
+/* yellow band */
+.footer-top {
+    background: #FFC627;
+    padding: 15px 0;
+}
+
+.footer-top-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.footer-links a {
+    text-decoration: none;
+    color: #000;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* right side image */
+.footer-highlight {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.footer-highlight img {
+    height: 90px;
+}
+
+/* grey bottom strip */
+.footer-bottom {
+    background: #e5e5e5;
+    padding: 10px 0;
+    font-size: 12px;
+}
+
+.footer-bottom-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+.footer-bottom-inner a {
+    text-decoration: none;
+    color: #000;
+}
+</style>
+</head>
+
+<body>
+
+<div class="page-content">
+    <!-- optional test button to hit test.py -->
+    <form action="/cgi-bin/test.py" method="get">
+        <button type="submit">python test</button>
+    </form>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <a href="https://asu.edu/">ASU Home</a>
+        <a href="https://my.asu.edu/">My ASU</a>
+        <a href="https://www.asu.edu/academics/colleges-schools">Colleges and Schools</a>
+        <a href="#">Sign In</a>
+    </div>
+
+    <!-- HEADER -->
+    <div class="container">
+        <div class="main-header">
+            <img src="https://search.asu.edu/modules/webspark/asu_brand/node_modules/@asu/component-header/dist/assets/img/arizona-state-university-logo-vertical.png" alt="ASU logo">
+            <h1>ABET Tools</h1>
+        </div>
+    </div>
+
+    <!-- NAVIGATION -->
+    <div class="container">
+        <div class="nav-bar">
+            <a class="active" href="https://www.asu.edu/news-events" target="_blank">News/Events</a>
+            <a href="https://www.asu.edu/academics" target="_blank">Academics</a>
+            <a href="https://admission.asu.edu/" target="_blank">Admission</a>
+            <a href="https://www.asu.edu/research" target="_blank">Research</a>
+            <a href="https://sundevils.com/" target="_blank">Athletics</a>
+            <a href="https://alumni.asu.edu/" target="_blank">Alumni</a>
+            <a href="https://www.asu.edu/giving" target="_blank">Giving</a>
+            <a href="https://www.asu.edu/president" target="_blank">President</a>
+            <a href="https://www.asu.edu/about" target="_blank">About</a>
+        </div>
+    </div>
+
+    <!-- SEARCH + SUBTABS + CONTENT (CENTERED) -->
+    <div class="container">
+        <div class="center-section">
+
+            <!-- SEARCH TITLE -->
+            <div class="search-title">ABET Tools</div>
+
+            <!-- FILE UPLOAD + TOOL SELECT FORM -->
+            <form class="search-area"
+                  action="/cgi-bin/process_file.py"
+                  method="post"
+                  enctype="multipart/form-data">
+
+                <!-- clickable upload area -->
+                <label class="upload-section">
+                    <span class="upload-line"></span>
+                    <span class="file-icon">📁</span>
+                    <span class="upload-text">Upload Files</span>
+                    <!-- IMPORTANT: name="file" and type="file" -->
+                    <input type="file" name="file" id="file" accept=".csv" required>
+                </label>
+
+                <!-- dropdown of programs/tools -->
+                <select name="tool" class="tool-select">
+                    <option value="cs_cse" selected>CS/CSE Filter</option>
+                    <option value="cs_cse" selected>Tool</option>
+                    <option value="cs_cse" selected>Other Tool</option>
+                    <!-- add more tools later -->
+                </select>
+
+                <!-- run the selected tool -->
+                <button type="submit">Run</button>
+            </form>
+
+            <!-- SUBTABS -->
+            <div class="subtabs">
+                <div class="subtab active" data-target="tab-all">All Tools</div>
+                <div class="subtab" data-target="tab-faculty">Faculty and Staff</div>
+                <div class="subtab" data-target="tab-students">Students</div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="main-content">
+
+                <!-- ALL TOOLS CONTENT (default) -->
+                <div id="tab-all" class="tab-content active">
+                    <div class="content">
+                        <div class="content-left">
+                            <h2>Welcome to the ASU ABET Tools site</h2>
+                            <p>Empowering departments to streamline student data and documentation with reliable, secure digital tools.</p>
+                            <br>
+                            <p><strong>Need assistance?</strong></p>
+                            <p>
+                                <a href="https://www.asu.edu/about/contact" target="_blank">
+                                    Contact us via live chat, phone, or email.
+                                </a>
+                            </p>
+                        </div>
+
+                        <div class="content-right">
+                            <h3>Quick links</h3>
+                            <a href="https://search.asu.edu/?search-tabs=web_dir_faculty_staff" target="_blank">Directory</a>
+                            <a href="https://students.asu.edu/advising" target="_blank">Advising</a>
+                            <a href="https://degrees.asu.edu/" target="_blank">Programs</a>
+                            <a href="https://catalog.apps.asu.edu/catalog/classes" target="_blank">Classes</a>
+                            <a href="https://lib.asu.edu/" target="_blank">Library</a>
+                            <a href="https://news.asu.edu/" target="_blank">News</a>
+                            <a href="https://asuevents.asu.edu/" target="_blank">Events</a>
+                            <a href="https://cfo.asu.edu/applicant" target="_blank">Job openings</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FACULTY & STAFF CONTENT -->
+                <div id="tab-faculty" class="tab-content">
+                    <div class="content">
+                        <div class="content-left">
+                            <h2>Faculty and Staff tools</h2>
+                            <p>Access reporting dashboards, assessment templates, and course outcome tools designed to support ABET documentation and program review.</p>
+                            <br>
+                            <p><strong>Looking for department resources?</strong></p>
+                            <p>
+                                <a href="https://provost.asu.edu/academic-personnel" target="_blank">
+                                    Visit the academic personnel and department resources page.
+                                </a>
+                            </p>
+                        </div>
+
+                        <div class="content-right">
+                            <h3>Faculty resources</h3>
+                            <a href="https://canvas.asu.edu" target="_blank">Canvas</a>
+                            <a href="https://provost.asu.edu" target="_blank">Office of the Provost</a>
+                            <a href="https://analytics.asu.edu" target="_blank">Analytics tools</a>
+                            <a href="https://uto.asu.edu" target="_blank">Technical support</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STUDENTS CONTENT -->
+                <div id="tab-students" class="tab-content">
+                    <div class="content">
+                        <div class="content-left">
+                            <h2>Student tools</h2>
+                            <p>Explore tools that help you track your progress toward degree completion, understand learning outcomes, and prepare for accreditation requirements.</p>
+                            <br>
+                            <p><strong>Need help with next steps?</strong></p>
+                            <p>
+                                <a href="https://students.asu.edu/advising" target="_blank">
+                                    Connect with your academic advisor.
+                                </a>
+                            </p>
+                        </div>
+
+                        <div class="content-right">
+                            <h3>Student resources</h3>
+                            <a href="https://my.asu.edu" target="_blank">My ASU</a>
+                            <a href="https://students.asu.edu" target="_blank">Student portal</a>
+                            <a href="https://tutoring.asu.edu" target="_blank">Tutoring & support</a>
+                            <a href="https://asu.careerservices.edu" target="_blank">Career services</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- end main-content -->
+
+        </div>
+    </div>
+</div> <!-- end page-content -->
+
+<!-- ===== FOOTER ===== -->
+<footer>
+    <!-- yellow strip -->
+    <div class="footer-top">
+        <div class="footer-top-inner">
+            <div class="footer-links">
+                <a href="https://www.asu.edu/map" target="_blank">Maps and Locations</a>
+                <a href="https://cfo.asu.edu/applicant" target="_blank">Jobs</a>
+                <a href="https://search.asu.edu" target="_blank">Directory</a>
+                <a href="https://www.asu.edu/about/contact" target="_blank">Contact ASU</a>
+                <a href="https://my.asu.edu" target="_blank">My ASU</a>
+            </div>
+            <div class="footer-highlight">
+                <img src="https://search.asu.edu/modules/webspark/asu_footer/img/240917_ASU_Rankings_GOLD.png"
+                     alt="Repeatedly ranked #1">
+            </div>
+        </div>
+    </div>
+
+    <!-- grey bottom strip -->
+    <div class="footer-bottom">
+        <div class="footer-bottom-inner">
+            <a href="https://www.asu.edu/copyright" target="_blank">Copyright and Trademark</a>
+            <a href="https://www.asu.edu/accessibility" target="_blank">Accessibility</a>
+            <a href="https://www.asu.edu/privacy" target="_blank">Privacy</a>
+            <a href="https://www.asu.edu/terms" target="_blank">Terms of Use</a>
+            <a href="https://www.asu.edu/emergency" target="_blank">Emergency</a>
+            <a href="https://www.asu.edu/privacy/settings" target="_blank">Manage my privacy settings</a>
+        </div>
+    </div>
+</footer>
+
+<!-- SIMPLE TAB SWITCHING SCRIPT -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tabs = document.querySelectorAll('.subtabs .subtab');
+    const panels = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // switch active tab
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // show matching panel, hide others
+            const targetId = tab.getAttribute('data-target');
+            panels.forEach(panel => {
+                if (panel.id === targetId) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+        });
+    });
+});
+</script>
+
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"77aed320d4174d049bea7ede5e997f67","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
