@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASU ABET Tools | Arizona State University</title>
+    <style>
+        /* --- CSS VARIABLES & ASU BRAND COLORS --- */
+        :root {
+            --asu-maroon: #8C1D40;
+            --asu-dark-maroon: #5c132a;
+            --asu-gold: #FFC627;
+            --asu-dark-gold: #eeb211;
+            --asu-black: #000000;
+            --asu-white: #FFFFFF;
+            --gray-bg: #F4F4F4;
+            --text-dark: #222222;
+        }
+
+        /* --- GLOBAL RESET & TYPOGRAPHY --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .asu-logo {
+            height: 34px;        /* adjust size here */
+            width: auto;
+            margin-right: 12px;  /* space between logo and text */
+            display: block;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gray-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--asu-white);
+            border-bottom: 4px solid var(--asu-gold);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-wrapper {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo-area {
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--asu-maroon);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .logo-sub {
+            font-weight: 400;
+            color: #666;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            border-left: 1px solid #ccc;
+            padding-left: 10px;
+        }
+
+        /* --- AUTH NAV (LOGIN/SIGNUP) --- */
+        .auth-nav {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .auth-link {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .auth-link:hover {
+            color: var(--asu-maroon);
+        }
+
+        .auth-btn {
+            background-color: var(--asu-maroon);
+            color: var(--asu-white);
+            text-decoration: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .auth-btn:hover {
+            background-color: var(--asu-dark-maroon);
+            transform: translateY(-1px);
+        }
+
+        /* --- HERO SECTION WITH ANIMATION --- */
+        .hero {
+            position: relative;
+            /* Animated Gradient Background */
+            background: linear-gradient(-45deg, var(--asu-maroon), #5c132a, #741733, var(--asu-maroon));
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--asu-white);
+            padding: 5rem 5% 6rem 5%; /* Extra padding bottom for overlap */
+            text-align: center;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            max-width: 650px;
+            margin: 0 auto;
+            opacity: 0.95;
+            line-height: 1.8;
+        }
+
+        /* --- TOOLS CONTAINER --- */
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: -4rem auto 3rem auto; /* Negative margin pulls it up over the hero */
+            padding: 0 20px;
+            z-index: 10;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            /* FIX: This prevents cards from stretching to match the height of the open card */
+            align-items: flex-start; 
+        }
+
+        /* --- TOOL CARD STYLING --- */
+        .tool-card {
+            background: var(--asu-white);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-top: 6px solid var(--asu-maroon);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.12);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer; /* Make whole header clickable */
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--asu-maroon);
+        }
+
+        /* --- ACCORDION / DROPDOWN BUTTON --- */
+        .toggle-btn {
+            background: transparent;
+            border: 2px solid var(--asu-gold);
+            color: var(--text-dark);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            padding-bottom: 2px; /* Visual centering adjustment */
+        }
+
+        .tool-card:hover .toggle-btn {
+            background: var(--asu-gold);
+        }
+
+        .toggle-btn.active {
+            transform: rotate(45deg); /* Turns the + into an x */
+            background: var(--asu-gold);
+            border-color: var(--asu-gold);
+        }
+
+        /* --- HIDDEN CONTENT --- */
+        .card-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background-color: #fafafa;
+        }
+
+        .card-body-inner {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .action-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--asu-maroon);
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid var(--asu-gold);
+            padding-bottom: 2px;
+            transition: color 0.2s;
+        }
+        
+        .action-link:hover {
+            color: var(--asu-black);
+            border-color: var(--asu-maroon);
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            margin-top: auto;
+            background-color: #1a1a1a;
+            color: #888;
+            padding: 3rem 5%;
+            text-align: center;
+            font-size: 0.85rem;
+            border-top: 4px solid var(--asu-gold);
+        }
+
+        footer p {
+            margin-bottom: 0.5rem;
+        }
+
+        footer p span {
+            color: var(--asu-gold);
+            font-weight: bold;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .logo-sub {
+                display: none; /* Hide sub-logo on very small screens */
+            }
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .auth-nav {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Nav -->
+    <header>
+        <div class="logo-wrapper">
+            <img src="https://cms.asuonline.asu.edu/sites/g/files/litvpz1971/files/asu-vertical-logo.png" alt="Arizona State University logo" class="asu-logo">
+            <span class="logo-area">Arizona State University</span>
+            <span class="logo-sub">Enterprise Technology</span>
+        </div>
+        
+        <!-- Login / Signup Area -->
+        <div class="auth-nav">
+            <a href="loginpage.html" class="auth-link">Log In</a>
+            <a href="#" class="auth-btn">Sign Up</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>ABET Tools</h1>
+        <p>Access the core tools designed to empower the Sun Devil faculty. Select a tool below to learn more about its capabilities.</p>
+    </section>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <div class="tools-grid">
+
+            <!-- Tool 1 -->
+            <div class="tool-card">
+                <div class="card-header" onclick="triggerToggle(this)">
+                    <div class="card-title">Assigment & Grade Data</div>
+                    <button class="toggle-btn" aria-label="Toggle Description">+</button>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-inner">
+                        <p>Manage course performance data efficiently with a clear, structured view of assignments and outcomes-related grading. Ensure records are complete and ready for review when needed.</p>
+                        <a href="#" class="action-link">Launch Tool 1 &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tool 2 -->
+            <div class="tool-card">
+                <div class="card-header" onclick="triggerToggle(this)">
+                    <div class="card-title">Generate Semester Report</div>
+                    <button class="toggle-btn" aria-label="Toggle Description">+</button>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-inner">
+                        <p>Create a polished semester summary that consolidates key course activity and performance indicators. Produce a consistent report suitable for faculty review and departmental records.</p>
+                        <a href="#" class="action-link">Launch Tool 2 &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tool 3 -->
+            <div class="tool-card">
+                <div class="card-header" onclick="triggerToggle(this)">
+                    <div class="card-title">Generate ABET Report</div>
+                    <button class="toggle-btn" aria-label="Toggle Description">+</button>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-inner">
+                        <p>Generate a comprehensive ABET report that summarizes assessment results and supporting materials. Present information clearly to streamline internal review and accreditation preparation.</p>
+                        <a href="#" class="action-link">Launch Tool 3 &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Arizona State University. All rights reserved.</p>
+        <p>Inspiring <span>Innovation</span> across the globe.</p>
+    </footer>
+
+    <!-- JavaScript for Interaction -->
+    <script>
+        function triggerToggle(headerElement) {
+            // Find the button inside the clicked header
+            const button = headerElement.querySelector('.toggle-btn');
+            
+            // Find the parent card
+            const card = headerElement.closest('.tool-card');
+            
+            // Find the content body
+            const content = card.querySelector('.card-body');
+
+            // Check if this card is currently open
+            const isAlreadyOpen = content.style.maxHeight;
+
+            // --- STEP 1: CLOSE ALL CARDS ---
+            // This ensures only one is open at a time (accordion style)
+            document.querySelectorAll('.card-body').forEach(el => {
+                el.style.maxHeight = null;
+            });
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // --- STEP 2: OPEN THIS CARD (IF IT WAS CLOSED) ---
+            if (!isAlreadyOpen) {
+                // Set height to scrollHeight (actual height of content)
+                content.style.maxHeight = content.scrollHeight + "px";
+                button.classList.add('active');
+            }
+        }
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"77aed320d4174d049bea7ede5e997f67","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
