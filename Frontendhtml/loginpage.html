@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABET Tools - Sign In</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #8C1D40;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #8C1D40;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(140, 29, 64, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .link a {
+            color: #8C1D40;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .link a:hover {
+            text-decoration: underline;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🔧 ABET Tools</h1>
+            <p class="subtitle">Sign in to access your tools</p>
+        </div>
+        
+        <!-- Sign In Form -->
+        <form id="signinForm">
+            <div class="form-group">
+                <label for="username">Username or Email</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit" class="btn">Sign In</button>
+            
+            <div class="link">
+                <a href="#" onclick="toggleForm(); return false;">Don't have an account? Create one</a>
+            </div>
+        </form>
+        
+    </div>
+    
+    <script>
+        // Hardcoded credentials (change these to whatever you want)
+        const VALID_USERNAME = "admin";
+        const VALID_PASSWORD = "password123";
+        
+        function toggleForm() {
+            const signinForm = document.getElementById('signinForm');
+            const signupForm = document.getElementById('signupForm');
+            const subtitle = document.querySelector('.subtitle');
+            
+            if (signinForm.classList.contains('hidden')) {
+                signinForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                subtitle.textContent = 'Sign in to access your tools';
+            } else {
+                signinForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                subtitle.textContent = 'Create an account to get started';
+            }
+        }
+        
+        // Handle sign-in with hardcoded credentials
+        document.getElementById('signinForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent form from submitting normally
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Check if credentials match
+            if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+                // Successful login - redirect to tools page
+                window.location.href = 'homepageABET.html'; // Change this to your destination page
+            } else {
+                // Invalid credentials
+                alert('Invalid username or password. Please try again.');
+            }
+        });
+        
+        // Basic password confirmation validation for signup
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+            }
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"77aed320d4174d049bea7ede5e997f67","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
