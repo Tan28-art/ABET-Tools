@@ -30,9 +30,10 @@ pip install -r requirements.txt
 export canvas_access_token="your canvas access token"
 ```
 
-Optional: put this in a .env file. Setup only once.
+Optional: put this in a .env file. Setup only once. Note that if you add directories, you will need to copy the .env file there too.
 
 `./assignment_extraction/.env`:
+`.env`:
 ```
 export canvas_access_token="your canvas access token"
 ```
