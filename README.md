@@ -30,6 +30,13 @@ pip install -r requirements.txt
 export canvas_access_token="your canvas access token"
 ```
 
+Optional: put this in a .env file. Setup only once.
+
+`./assignment_extraction/.env`:
+```
+export canvas_access_token="your canvas access token"
+```
+
 5. Run file
 ```
 python test_script.py
