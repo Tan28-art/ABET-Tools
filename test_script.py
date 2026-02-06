@@ -1,11 +1,13 @@
 import requests
 import json
 import os
+from dotenv import load_dotenv
 
 canvas_domain = 'https://canvas.asu.edu'
 
 # Get the access token
 # to set access token use: export canvas_access_token="your canvas access token" in terminal
+load_dotenv()
 access_token = os.environ['canvas_access_token']
 
 url = canvas_domain + '/api/v1/courses'

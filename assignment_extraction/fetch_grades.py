@@ -8,6 +8,7 @@ import requests
 import json
 import os
 import csv
+from dotenv import load_dotenv
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import logging
@@ -38,6 +39,7 @@ class CanvasGradesFetcher:
 
     def _get_access_token(self) -> str:
         """Get Canvas access token from environment variable."""
+        load_dotenv()
         token = os.environ.get("canvas_access_token")
         if not token:
             raise ValueError("Canvas access token not found.")
